@@ -14,10 +14,10 @@ class BackendTexture internal constructor(ptr: NativePointer) : Managed(ptr, _Fi
             reachabilityBarrier(this)
         }
 
-    val backend: Int
+    val backend: BackendApi
         get() = try {
             Stats.onNativeCall()
-            _nGetBackend(_ptr)
+            BackendApi.values()[_nGetBackend(_ptr)]
         } finally {
             reachabilityBarrier(this)
         }
@@ -39,12 +39,12 @@ class BackendTexture internal constructor(ptr: NativePointer) : Managed(ptr, _Fi
         }
 
     internal object _FinalizerHolder {
-        val PTR = BackendRenderTarget_nGetFinalizer()
+        val PTR = BackendTexture_nGetFinalizer()
     }
 }
 
 @ExternalSymbolName("org_jetbrains_skia_BackendTexture__1nGetFinalizer")
-private external fun BackendRenderTarget_nGetFinalizer(): NativePointer
+private external fun BackendTexture_nGetFinalizer(): NativePointer
 
 @ExternalSymbolName("org_jetbrains_skia_BackendTexture__1nIsValid")
 private external fun _nIsValid(ptr: NativePointer): Boolean
