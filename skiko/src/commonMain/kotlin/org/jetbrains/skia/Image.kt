@@ -410,6 +410,25 @@ class Image internal constructor(ptr: NativePointer) : RefCnt(ptr), IHasImageInf
             reachabilityBarrier(dst)
         }
     }
+
+    fun makeSubset(rect: IRect, context: DirectContext?): Image {
+        return try {
+            Stats.onNativeCall()
+            val ptr = _nMakeSubset(
+                _ptr,
+                rect.left,
+                rect.top,
+                rect.width,
+                rect.height,
+                getPtr(context)
+            )
+            if (ptr == NullPointer) throw RuntimeException("Failed to make image subset")
+            Image(ptr)
+        } finally {
+            reachabilityBarrier(this)
+            reachabilityBarrier(context)
+        }
+    }
 }
 
 @ExternalSymbolName("org_jetbrains_skia_Image__1nGetImageInfo")
@@ -497,3 +516,13 @@ private external fun _nReadPixelsPixmap(ptr: NativePointer, pixmapPtr: NativePoi
 
 @ExternalSymbolName("org_jetbrains_skia_Image__1nGetBackendTexture")
 private external fun _nGetBackendTexture(ptr: NativePointer, flush: Boolean): NativePointer
+
+@ExternalSymbolName("org_jetbrains_skia_Image__1nMakeSubset")
+private external fun _nMakeSubset(
+    ptr: NativePointer,
+    x: Int,
+    y: Int,
+    width: Int,
+    height: Int,
+    contextPtr: NativePointer
+): NativePointer

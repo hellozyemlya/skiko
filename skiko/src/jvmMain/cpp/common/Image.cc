@@ -7,7 +7,6 @@
 #include <iostream>
 #include <jni.h>
 
-
 extern "C" JNIEXPORT jlong JNICALL Java_org_jetbrains_skia_ImageKt__1nMakeFromAdoptedTexture
     (JNIEnv* env, jclass jclass, jlong contextPtr, jint width, jint height, jint surfaceOrigin, jint colorType, jint alphaType, jlong colorSpacePtr) {
   SkColorSpace* colorSpace = reinterpret_cast<SkColorSpace*>(static_cast<uintptr_t>(colorSpacePtr));
@@ -99,6 +98,14 @@ extern "C" JNIEXPORT jlong JNICALL Java_org_jetbrains_skia_ImageKt_Image_1nMakeS
     return reinterpret_cast<jlong>(shader.release());
 }
 
+extern "C" JNIEXPORT jlong JNICALL Java_org_jetbrains_skia_ImageKt__1nMakeSubset
+  (JNIEnv* env, jclass jclass, jlong ptr, jint x, jint y, jint width, jint height, jlong contextPtr) {
+    SkImage* instance = reinterpret_cast<SkImage*>(static_cast<uintptr_t>(ptr));
+    GrDirectContext* context = reinterpret_cast<GrDirectContext*>(static_cast<uintptr_t>(contextPtr));
+    sk_sp<SkImage> image = instance->makeSubset(SkIRect::MakeXYWH(x, y, width, height), context);
+    return reinterpret_cast<jlong>(image.release());
+}
+
 
 extern "C" JNIEXPORT jlong JNICALL Java_org_jetbrains_skia_ImageKt_Image_1nPeekPixels
   (JNIEnv* env, jclass jclass, jlong ptr) {
@@ -145,7 +152,7 @@ extern "C" JNIEXPORT jboolean JNICALL Java_org_jetbrains_skia_ImageKt__1nScalePi
 }
 
 extern "C" JNIEXPORT jlong JNICALL Java_org_jetbrains_skia_ImageKt__1nGetBackendTexture
-    (JNIEnv* env, jclass jclass, jlong ptr, jboolean flush) {
+  (JNIEnv* env, jclass jclass, jlong ptr, jboolean flush) {
     SkImage* instance = reinterpret_cast<SkImage*>(static_cast<uintptr_t>(ptr));
     GrSurfaceOrigin origin;
     GrBackendTexture* texture = new GrBackendTexture(instance->getBackendTexture(flush, &origin));
