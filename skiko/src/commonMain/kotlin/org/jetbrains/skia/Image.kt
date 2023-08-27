@@ -86,6 +86,25 @@ class Image internal constructor(ptr: NativePointer) : RefCnt(ptr), IHasImageInf
             }
         }
 
+        fun makeFromAdoptedTexture(context: DirectContext?, surfaceOrigin: SurfaceOrigin, imageInfo: ImageInfo): Image {
+            return try {
+                Stats.onNativeCall()
+                val ptr = _nMakeFromAdoptedTexture(
+                    getPtr(context),
+                    imageInfo.width,
+                    imageInfo.height,
+                    surfaceOrigin.ordinal,
+                    imageInfo.colorInfo.colorType.ordinal,
+                    imageInfo.colorInfo.alphaType.ordinal,
+                    getPtr(imageInfo.colorInfo.colorSpace)
+                )
+                if (ptr == NullPointer) throw RuntimeException("Failed to texture image")
+                Image(ptr)
+            } finally {
+                reachabilityBarrier(imageInfo.colorInfo.colorSpace)
+            }
+        }
+
         /**
          *
          * Creates Image from bitmap, sharing or copying bitmap pixels. If the bitmap
@@ -167,6 +186,19 @@ class Image internal constructor(ptr: NativePointer) : RefCnt(ptr), IHasImageInf
         } finally {
             reachabilityBarrier(this)
         }
+
+    fun getBackendTexture(flush: Boolean = false): BackendTexture? {
+        return try {
+            val ptr = _nGetBackendTexture(_ptr, flush)
+            if (ptr != NullPointer) {
+                BackendTexture(ptr)
+            } else {
+                null
+            }
+        } finally {
+            reachabilityBarrier(this)
+        }
+    }
     /**
      * Encodes Image pixels, returning result as Data.
      *
@@ -384,7 +416,14 @@ class Image internal constructor(ptr: NativePointer) : RefCnt(ptr), IHasImageInf
 private external fun Image_nGetImageInfo(ptr: NativePointer, imageInfo: InteropPointer, colorSpacePtrs: InteropPointer)
 
 @ExternalSymbolName("org_jetbrains_skia_Image__1nMakeShader")
-private external fun Image_nMakeShader(ptr: NativePointer, tmx: Int, tmy: Int, samplingModeVal1: Int, samplingModeVal2: Int, localMatrix: InteropPointer): NativePointer
+private external fun Image_nMakeShader(
+    ptr: NativePointer,
+    tmx: Int,
+    tmy: Int,
+    samplingModeVal1: Int,
+    samplingModeVal2: Int,
+    localMatrix: InteropPointer
+): NativePointer
 
 @ExternalSymbolName("org_jetbrains_skia_Image__1nPeekPixels")
 private external fun Image_nPeekPixels(ptr: NativePointer): NativePointer
@@ -398,6 +437,17 @@ private external fun _nMakeRaster(
     colorSpacePtr: NativePointer,
     pixels: InteropPointer,
     rowBytes: Int
+): NativePointer
+
+@ExternalSymbolName("org_jetbrains_skia_Image__1nMakeFromAdoptedTexture")
+private external fun _nMakeFromAdoptedTexture(
+    contextPtr: NativePointer,
+    width: Int,
+    height: Int,
+    surfaceOrigin: Int,
+    colorType: Int,
+    alphaType: Int,
+    colorSpacePtr: NativePointer
 ): NativePointer
 
 
@@ -444,3 +494,6 @@ private external fun _nReadPixelsBitmap(
 
 @ExternalSymbolName("org_jetbrains_skia_Image__1nReadPixelsPixmap")
 private external fun _nReadPixelsPixmap(ptr: NativePointer, pixmapPtr: NativePointer, srcX: Int, srcY: Int, cache: Boolean): Boolean
+
+@ExternalSymbolName("org_jetbrains_skia_Image__1nGetBackendTexture")
+private external fun _nGetBackendTexture(ptr: NativePointer, flush: Boolean): NativePointer

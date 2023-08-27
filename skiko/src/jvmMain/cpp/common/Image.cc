@@ -1,9 +1,26 @@
-#include <iostream>
-#include <jni.h>
+#include "GrBackendSurface.h"
+#include "GrDirectContext.h"
+#include "SkBitmap.h"
 #include "SkData.h"
 #include "SkImage.h"
-#include "SkBitmap.h"
 #include "interop.hh"
+#include <iostream>
+#include <jni.h>
+
+
+extern "C" JNIEXPORT jlong JNICALL Java_org_jetbrains_skia_ImageKt__1nMakeFromAdoptedTexture
+    (JNIEnv* env, jclass jclass, jlong contextPtr, jint width, jint height, jint surfaceOrigin, jint colorType, jint alphaType, jlong colorSpacePtr) {
+  SkColorSpace* colorSpace = reinterpret_cast<SkColorSpace*>(static_cast<uintptr_t>(colorSpacePtr));
+  GrDirectContext* context = reinterpret_cast<GrDirectContext*>(static_cast<uintptr_t>(contextPtr));
+  GrBackendTexture texture = context->createBackendTexture(width, height, static_cast<SkColorType>(colorType), GrMipmapped::kNo, GrRenderable::kYes);
+  sk_sp<SkImage> image = SkImage::MakeFromAdoptedTexture(context,
+                                                         texture,
+                                                         static_cast<GrSurfaceOrigin>(surfaceOrigin),
+                                                         static_cast<SkColorType>(colorType),
+                                                         static_cast<SkAlphaType>(alphaType),
+                                                         sk_ref_sp<SkColorSpace>(colorSpace));
+  return reinterpret_cast<jlong>(image.release());
+}
 
 extern "C" JNIEXPORT jlong JNICALL Java_org_jetbrains_skia_ImageKt__1nMakeRaster
   (JNIEnv* env, jclass jclass, jint width, jint height, jint colorType, jint alphaType, jlong colorSpacePtr, jbyteArray bytesArr, jint rowBytes) {
@@ -125,4 +142,18 @@ extern "C" JNIEXPORT jboolean JNICALL Java_org_jetbrains_skia_ImageKt__1nScalePi
     SkPixmap* pixmap = reinterpret_cast<SkPixmap*>(static_cast<uintptr_t>(pixmapPtr));
     auto cachingHint = cache ? SkImage::CachingHint::kAllow_CachingHint : SkImage::CachingHint::kDisallow_CachingHint;
     return instance->scalePixels(*pixmap, skija::SamplingMode::unpackFrom2Ints(env, samplingOptionsVal1, samplingOptionsVal2), cachingHint);
+}
+
+extern "C" JNIEXPORT jlong JNICALL Java_org_jetbrains_skia_ImageKt__1nGetBackendTexture
+    (JNIEnv* env, jclass jclass, jlong ptr, jboolean flush) {
+    SkImage* instance = reinterpret_cast<SkImage*>(static_cast<uintptr_t>(ptr));
+    GrSurfaceOrigin origin;
+    GrBackendTexture* texture = new GrBackendTexture(instance->getBackendTexture(flush, &origin));
+
+    if(!texture->isValid()) {
+        delete texture;
+        return 0;
+    }
+
+    return ptrToJlong(texture);
 }
