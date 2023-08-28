@@ -1,5 +1,6 @@
 #include "GrBackendSurface.h"
 #include "GrDirectContext.h"
+#include "src/gpu/gl/GrGLDefines.h"
 #include "SkBitmap.h"
 #include "SkData.h"
 #include "SkImage.h"
@@ -11,7 +12,8 @@ extern "C" JNIEXPORT jlong JNICALL Java_org_jetbrains_skia_ImageKt__1nMakeFromAd
     (JNIEnv* env, jclass jclass, jlong contextPtr, jint width, jint height, jint surfaceOrigin, jint colorType, jint alphaType, jlong colorSpacePtr) {
   SkColorSpace* colorSpace = reinterpret_cast<SkColorSpace*>(static_cast<uintptr_t>(colorSpacePtr));
   GrDirectContext* context = reinterpret_cast<GrDirectContext*>(static_cast<uintptr_t>(contextPtr));
-  GrBackendTexture texture = context->createBackendTexture(width, height, static_cast<SkColorType>(colorType), GrMipmapped::kNo, GrRenderable::kYes);
+  GrBackendFormat format = GrBackendFormat::MakeGL(GR_GL_RGBA8, GR_GL_TEXTURE_2D);
+  GrBackendTexture texture = context->createBackendTexture(width, height, format, GrMipmapped::kNo, GrRenderable::kYes);
   sk_sp<SkImage> image = SkImage::MakeFromAdoptedTexture(context,
                                                          texture,
                                                          static_cast<GrSurfaceOrigin>(surfaceOrigin),
